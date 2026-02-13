@@ -7,6 +7,7 @@ preprocessing scripts for pubchem search
 | File | Description |
 |------|-------------|
 | `submit_search.sh` | Shell script to submit PubChem search jobs for the subsets named within |
+| `pubchem_NSP_search.sh` | Slurmscript to run the search jobs for the subsets named within |
 | `1.pubchem_oe_pattern_search.py` | Python script for pattern-based molecule searching using OpenEye toolkit |
 | `2.merge_all_jsons.py` | Merges multiple JSON result files into a single consolidated file |
 | `3.restrict_to_n_heavy_atoms_oeversion.py` | Further filtering of molecules from combined search results using OpenEye |
@@ -20,10 +21,10 @@ preprocessing scripts for pubchem search
 | `phosphorous_summary_updated.csv` | Summary document for phosphorous-containing molecule SMARTS |
 
 ### Results
-Results and output files are located in the `results/` directory for each set:
-- `pubchem_NSP_search.sh` — JSON results contain the merged results of all inidivdual subset files
-- `set{n}-{element}.json` — JSON results for {element}-containing molecules
-- `set{n}-{element}-smiles.smi` — SMILES format file for {element} subset
+Results and output files are located in the `results/` directory for each set. Two sets made with upto 10 molecules for each pattern:
+- `pubchem_NSP_search.json.tar.gz` — JSON results contain the merged results of all inidivdual subset files
+- `set{n}-{element}.json` — JSON results for {N,S,P}-containing molecules
+- `set{n}-{element}-smiles.smi` — SMILES format file for {N,S,P} subset
 
 
 
