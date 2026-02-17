@@ -87,26 +87,32 @@ for pattern_key, charge_dict in data.items():
                     break
     
     # SET 2: Diversity across charge states
-    for charge_key, smiles_list in charge_dict.items():
-        molecules_from_charge = 0
-        for smi in smiles_list:
-            if smi in mols_added or set2_count >= n_mols_2:
+    # Iterate up to 2 times to ensure coverage across charge states
+    for _ in range(2):
+        if set2_count >= n_mols_2:
+            break
+        for charge_key, smiles_list in sorted_charges:
+            if set2_count >= n_mols_2:
                 break
-            try:
-                offmol = Molecule.from_smiles(smi, allow_undefined_stereo=True)
-                mol = offmol.to_openeye()
-            except Exception as exc:
-                print(f"Skipping SMILES {smi} due to error during parsing/conversion: {exc}")
-                continue
-            
-            if filter_obj(mol):
-                new_dict2_nested[pattern_key][charge_key].append(smi)
-                mols_added.append(smi)
-                set2_count += 1
-                molecules_from_charge += 1
-                # Limit to 1-2 molecules per charge state for diversity
-                if molecules_from_charge >= 2:
+            molecules_from_charge = 0
+            for smi in smiles_list:
+                if smi in mols_added or set2_count >= n_mols_2:
                     break
+                try:
+                    offmol = Molecule.from_smiles(smi, allow_undefined_stereo=True)
+                    mol = offmol.to_openeye()
+                except Exception as exc:
+                    print(f"Skipping SMILES {smi} due to error during parsing/conversion: {exc}")
+                    continue
+                
+                if filter_obj(mol):
+                    new_dict2_nested[pattern_key][charge_key].append(smi)
+                    mols_added.append(smi)
+                    set2_count += 1
+                    molecules_from_charge += 1
+                    # Limit to 1 molecule per charge state per iteration
+                    if molecules_from_charge >= 1:
+                        break
 
 # Flatten nested dicts for backwards compatibility
 new_dict1 = {k: [smi for charge_dict in v.values() for smi in charge_dict] for k, v in new_dict1_nested.items()}
