@@ -97,7 +97,7 @@ while oechem.OEReadMolecule(ifs, mol):
         
             if ss.SingleMatch(mol):
                 oechem.OEAssignFormalCharges(mol)
-                net_charge = oechem.oechem.OENetCharge(mol)
+                net_charge = oechem.OENetCharge(mol)
                 if len(smarts_dict[pattern]) == 0:
                     charge_key = f"net_abs_charge_{abs(net_charge)}"
                     smarts_dict[pattern] = {charge_key: []}
