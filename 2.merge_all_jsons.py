@@ -5,17 +5,17 @@ from collections import defaultdict
 # Path to the directory with JSON files
 directory = "./individual_json_files"
 
-merged = defaultdict(list)
+merged = defaultdict(dict)
 for filename in os.listdir(directory):
     if filename.endswith(".json"):
         filepath = os.path.join(directory, filename)
         with open(filepath, "r") as f:
             data = json.load(f)
             for k, v in data.items():
-                if isinstance(v, list):
-                    merged[k].extend(v)
+                if isinstance(v, dict):
+                    merged[k].update(v)  # Merges one level deep
                 else:
-                    merged[k].append(v)
+                    merged[k] = v
 
 # Convert back to normal dict
 merged = dict(merged)
