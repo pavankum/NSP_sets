@@ -49,7 +49,7 @@ s_smarts = s_df['SMARTS'].to_list()
 p_smarts = p_df['SMARTS'].to_list()
 
 all_smarts = p_smarts + s_smarts + n_smarts
-n_mols = 100  # Maximum number of molecules to collect per SMARTS pattern
+n_mols = 100  # Maximum number of molecules to collect per SMARTS pattern, per charge category
 fname = 'file_name'
 ifs = oechem.oemolistream(f'/dfs6/pub/pbehara/check_chembl_parameter_coverage/pubchem/Compounds/{fname}')
 
@@ -74,7 +74,7 @@ for pattern in all_smarts:
     smarts_search_dict[pattern] = ss
 
 mol = oechem.OEGraphMol()
-smarts_dict = defaultdict(list)
+smarts_dict = defaultdict(dict)
 mols_added = []
 while oechem.OEReadMolecule(ifs, mol):
     added_to_pattern = False
@@ -96,19 +96,27 @@ while oechem.OEReadMolecule(ifs, mol):
             oechem.OEPrepareSearch(mol, ss)
         
             if ss.SingleMatch(mol):
-                
+                oechem.OEAssignFormalCharges(mol)
+                net_charge = oechem.oechem.OENetCharge(mol)
                 if len(smarts_dict[pattern]) == 0:
-                    smarts_dict[pattern].append((f"{smiles} Pubchem_CID_{mol_name}", get_tree_fp(mol)))
+                    charge_key = f"net_abs_charge_{abs(net_charge)}"
+                    smarts_dict[pattern] = {charge_key: []}
+                    smarts_dict[pattern][charge_key].append((f"{smiles} Pubchem_CID_{mol_name}", get_tree_fp(mol)))
                     added_to_pattern = True
                     mols_added.append(smiles)
                 else:
-                    fpmol = get_tree_fp(mol)
-                    sim_with_rest = [oegraphsim.OETanimoto(fpmol, fp) for _,fp in smarts_dict[pattern]]
-                    # If tanimoto sim is less than 0.4 then add molecule to the list
-                    if all(x < 0.4 for x in sim_with_rest):
-                        smarts_dict[pattern].append((f"{smiles} Pubchem_CID_{mol_name}", fpmol))
-                        added_to_pattern = True
-                        mols_added.append(smiles)
+                    charge_key = f"net_abs_charge_{abs(net_charge)}"
+                    if charge_key not in smarts_dict[pattern]:
+                        smarts_dict[pattern][charge_key] = []
+                    
+                    if len(smarts_dict[pattern][charge_key]) < n_mols:
+                        fpmol = get_tree_fp(mol)
+                        sim_with_rest = [oegraphsim.OETanimoto(fpmol, fp) for _, fp in smarts_dict[pattern][charge_key]]
+                        # If tanimoto sim is less than 0.4 then add molecule to the list
+                        if all(x < 0.4 for x in sim_with_rest):
+                            smarts_dict[pattern][charge_key].append((f"{smiles} Pubchem_CID_{mol_name}", fpmol))
+                            added_to_pattern = True
+                            mols_added.append(smiles)
         else:
             all_smarts.remove(pattern)
 
@@ -117,6 +125,7 @@ print('###########################\n')
 print(set(all_smarts) - set(smarts_dict.keys()))
 
 for key, value in smarts_dict.items():
-    smarts_dict[key] = [x[0] for x in value] 
+    smarts_dict[key] = {charge_key: [x[0] for x in molecules] for charge_key, molecules in value.items()}
+
 with open(f'./individual_json_files/{fname[:-7]}_smarts_dict.json', "w") as f:
     json.dump(smarts_dict, f, indent=4)
