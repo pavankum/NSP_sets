@@ -113,6 +113,48 @@ for pattern_key, charge_dict in data.items():
                     # Limit to 1 molecule per charge state per iteration
                     if molecules_from_charge >= 1:
                         break
+    
+    # SET 2: Ensure diversity across charge states with guaranteed coverage
+    # Phase 1: Guarantee at least one molecule per charge state
+    for charge_key, smiles_list in sorted_charges:
+        if set2_count >= n_mols_2:
+            break
+        for smi in smiles_list:
+            if smi in mols_added or set2_count >= n_mols_2:
+                continue
+            try:
+                offmol = Molecule.from_smiles(smi, allow_undefined_stereo=True)
+                mol = offmol.to_openeye()
+            except Exception as exc:
+                print(f"Skipping SMILES {smi} due to error during parsing/conversion: {exc}")
+                continue
+            
+            if filter_obj(mol):
+                new_dict2_nested[pattern_key][charge_key].append(smi)
+                mols_added.append(smi)
+                set2_count += 1
+                break  # Move to next charge state after one success
+
+    # Phase 2: Greedily fill remaining slots across all charge states
+    if set2_count < n_mols_2:
+        for charge_key, smiles_list in sorted_charges:
+            if set2_count >= n_mols_2:
+                break
+            for smi in smiles_list:
+                if smi in mols_added or set2_count >= n_mols_2:
+                    continue
+                try:
+                    offmol = Molecule.from_smiles(smi, allow_undefined_stereo=True)
+                    mol = offmol.to_openeye()
+                except Exception as exc:
+                    print(f"Skipping SMILES {smi} due to error during parsing/conversion: {exc}")
+                    continue
+                
+                if filter_obj(mol):
+                    new_dict2_nested[pattern_key][charge_key].append(smi)
+                    mols_added.append(smi)
+                    set2_count += 1
+
 
 # Flatten nested dicts for backwards compatibility
 new_dict1 = {k: [smi for charge_dict in v.values() for smi in charge_dict] for k, v in new_dict1_nested.items()}
